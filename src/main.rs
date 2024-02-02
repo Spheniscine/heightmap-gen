@@ -67,7 +67,9 @@ impl_common_num_ext!(i8 = u8, i16 = u16, i32 = u32, i64 = u64, i128 = u128, isiz
 const HEIGHT: usize = 512;
 const WIDTH: usize = 512;
 const OCTAVES: usize = 8;
-const ATTENUATION: f32 = 0.75;
+const ATTENUATION: f32 = 2. / 3.;
+
+const PERLIN_WEIGHT: f32 = 1. / 2.;
 
 type Point = (f32, f32);
 
@@ -82,6 +84,10 @@ fn dot_grid_gradient(grid: &Array2<Point>, ix: usize, iy: usize, x: f32, y: f32)
 
 fn interpolate(a0: f32, a1: f32, w: f32) -> f32 {
     (a1 - a0) * (3. - w * 2.) * w * w + a0
+}
+
+fn interpolate_linear(a0: f32, a1: f32, w: f32) -> f32 {
+    (a1 - a0) * w + a0
 }
 
 fn perlin(src: &Array2<Point>, x: f32, y: f32) -> f32 {
@@ -130,16 +136,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         }}
 
         scale_sum += scale;
-        scale *= ATTENUATION;
+        scale *= (1. - ATTENUATION);
     }
 
     for i in 0..HEIGHT { for j in 0..WIDTH {
         res[[i, j]] /= scale_sum;
+
+        // squircle adjustment
+        let d = |x: usize, w: usize| x as f32 / w as f32 * 2. - 1.;
+        let dis = (d(i, HEIGHT).powi(4) + d(j, WIDTH).powi(4)) / 2.;
+        let r = interpolate_linear(1., -2.75, dis);
+
+        res[[i, j]] = res[[i, j]] * PERLIN_WEIGHT + r * (1. - PERLIN_WEIGHT)
     }}
 
     let mut buf = vec![0u8; HEIGHT * WIDTH];
     for i in 0..HEIGHT { for j in 0..WIDTH {
-        buf[i * WIDTH + j] = (res[[i, j]].clamp(-1., 1.) * 127.5 + 127.5).round() as u8;
+        buf[i * WIDTH + j] = (res[[i, j]].clamp(-1., 1.) * 28. + 28.).round() as u8;
     }}
 
     let mut writer = File::create("output.png")?;
