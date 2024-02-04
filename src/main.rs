@@ -145,13 +145,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // squircle adjustment
         let d = |x: usize, w: usize| x as f32 / w as f32 * 2. - 1.;
         let dis = (d(i, HEIGHT).powi(4) + d(j, WIDTH).powi(4)) / 2.;
-        let r = interpolate_linear(1., -2.75, dis);
+        let r = interpolate_linear(1., -2.5, dis);
 
         res[[i, j]] = res[[i, j]] * PERLIN_WEIGHT + r * (1. - PERLIN_WEIGHT)
     }}
 
     let mut buf = vec![0u8; HEIGHT * WIDTH];
-    for i in 0..HEIGHT { for j in 0..WIDTH {
+    for i in 2..HEIGHT-2 { for j in 2..WIDTH-2 {
         buf[i * WIDTH + j] = (res[[i, j]].clamp(-1., 1.) * 28. + 28.).round() as u8;
     }}
 
